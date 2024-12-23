@@ -3,31 +3,65 @@ package home
 import (
 	"fmt"
 
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
-type Option struct {
-	title  string
-	keyTag rune
-}
+var selectKeyEnter = key.NewBinding(
+	key.WithKeys(
+		"enter",
+	),
+	key.WithHelp(
+		"enter",
+		"select",
+	),
+)
+
+var selectKeyQuit = key.NewBinding(
+	key.WithKeys(
+		"q",
+		"ctrl+c",
+	),
+	key.WithHelp(
+		"q",
+		"quit",
+	),
+)
+
+var selectKeyUp = key.NewBinding(
+	key.WithKeys(
+		"up",
+		"k",
+	),
+	key.WithHelp(
+		"↑",
+		"up",
+	),
+)
+
+var selectKeyDown = key.NewBinding(
+	key.WithKeys(
+		"down",
+		"j",
+	),
+	key.WithHelp(
+		"↓",
+		"down",
+	),
+)
 
 type Model struct {
 	choices []Option
 	cursor  int
 }
 
+func (m *Model) currChoice() Option {
+	return m.choices[m.cursor]
+}
+
 func InitialModel() Model {
-	return Model{
-		choices: []Option{
-			{title: "✏️  - [A]dd a new note", keyTag: 'a'},
-			{title: "📒 - [V]iew all notes", keyTag: 'v'},
-			{title: "📝 - [E]dit a note", keyTag: 'e'},
-			{title: "🗑️  - [D]elete a note", keyTag: 'd'},
-			{title: "🔍 - [S]earch notes by keyword", keyTag: 's'},
-			{title: "🚪 - [Q]uit", keyTag: 'q'},
-		},
-	}
+	return Model{choices: options}
 }
 
 func (m Model) Init() tea.Cmd {
@@ -37,18 +71,19 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
+		switch {
+		case key.Matches(msg, selectKeyEnter):
+			if m.currChoice().isQuit() {
+				return m, tea.Quit
+			}
+		case key.Matches(msg, selectKeyQuit):
 			return m, tea.Quit
-		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-		case "down", "j":
-			if m.cursor < len(m.choices)-1 {
-				m.cursor++
-			}
 
+		case key.Matches(msg, selectKeyUp):
+			m.cursor = (m.cursor - 1 + len(m.choices)) % len(m.choices)
+
+		case key.Matches(msg, selectKeyDown):
+			m.cursor = (m.cursor + 1) % len(m.choices)
 		}
 	}
 
